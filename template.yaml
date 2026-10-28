@@ -1,0 +1,62 @@
+# AWS SAM template for jalopper: checks Pick-a-Part inventory hourly and emails new finds.
+# Requires an existing DynamoDB table (default name: jalopper-inventory, partition key "city" (S))
+# and a sender address verified in Amazon SES. See README.md.
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Hourly check of Pick-a-Part inventory with email alerts for new vehicles.
+
+Parameters:
+  EmailTo:
+    Type: String
+    Description: Address that receives new-vehicle alerts
+  EmailFrom:
+    Type: String
+    Description: Sender address (must be verified in Amazon SES)
+  TableName:
+    Type: String
+    Default: jalopper-inventory
+    Description: Existing DynamoDB table (partition key "city", type String)
+
+Resources:
+  jalopper:
+    Type: AWS::Serverless::Function
+    Properties:
+      Architectures:
+        - x86_64
+      CodeUri: ./src
+      Description: Checks junkyard inventory and emails new vehicles
+      EphemeralStorage:
+        Size: 512
+      Handler: lambda_function.lambda_handler
+      LoggingConfig:
+        LogFormat: Text
+        LogGroup: /aws/lambda/jalopper
+      MemorySize: 128
+      PackageType: Zip
+      RecursiveLoop: Terminate
+      Runtime: python3.13
+      RuntimeManagementConfig:
+        UpdateRuntimeOn: Auto
+      SnapStart:
+        ApplyOn: None
+      Tags: {}
+      # 8 sequential requests x 5 s timeout each, plus DynamoDB and SES calls
+      Timeout: 60
+      Tracing: PassThrough
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Ref TableName
+          EMAIL_TO: !Ref EmailTo
+          EMAIL_FROM: !Ref EmailFrom
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+        - Statement:
+            - Effect: Allow
+              Action: ses:SendEmail
+              Resource: '*'
+      Events:
+        Trigger1Event:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 hour)

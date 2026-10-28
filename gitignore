@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# AWS SAM build output and packages
+.aws-sam/
+*.zip
+samconfig.toml
+
+# Secrets and local config
+.env
+*.pem
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Dependencies installed by pip into the project folder (let `sam build` handle them)
+*.dist-info/
+bs4/
+requests/
+urllib3/
+certifi/
+idna/
+charset_normalizer/
+soupsieve/
+typing_extensions.py
